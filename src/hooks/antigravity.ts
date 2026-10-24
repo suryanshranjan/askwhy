@@ -208,7 +208,10 @@ export function userRequest(content: string): string {
 function commandOutput(content: string): string {
   const i = content.indexOf('Output:');
   const body = i >= 0 ? content.slice(i + 'Output:'.length) : content;
-  return body.replace(/^\s+/gm, (m) => m.replace(/\t/g, '')).trim();
+  return body
+    .replace(/^\s+/gm, (m) => m.replace(/\t/g, ''))
+    .replace(/\n?Terminal ID: \d+\s*$/, '') // appended by Antigravity, not command output
+    .trim();
 }
 
 // Antigravity asks the model for a Description on every edit; with no why

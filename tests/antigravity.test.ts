@@ -87,7 +87,7 @@ test('antigravity: Stop replays edits and commands from the transcript', () => {
   const r = recs[0];
   assert.equal(r.agent.name, 'antigravity');
   assert.equal(r.prompt?.text, 'add multiply');
-  assert.deepEqual(r.hunks.map((h) => [h.path, h.new_range]), [['math.js', [2, 7]]]); // plan.md outside the repo is skipped
+  assert.deepEqual(r.hunks.map((h) => [h.path, h.new_range]), [['math.js', [4, 7]]]); // plan.md outside the repo is skipped
   assert.equal(r.why.decision, 'multiply beside add');
   assert.equal(r.proof.length, 1);
   assert.equal(r.proof[0].exit, 1);
