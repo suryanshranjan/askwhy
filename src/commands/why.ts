@@ -6,7 +6,8 @@
 import { repoRoot, toRepoPath, tryGit } from '../git.js';
 import { notedCommits, readRecords } from '../notes.js';
 import { readPending } from '../pending.js';
-import type { Hunk, Record } from '../record.js';
+import type { Hunk, Proof, Record } from '../record.js';
+import { afterLastEdit } from './receipt.js';
 import { displayCommand } from '../proof.js';
 import { isAbsolute, resolve } from 'node:path';
 
@@ -46,13 +47,17 @@ export function formatRecord(r: Record, path: string, line: number | null): stri
   const span = hunks.find((h) => line !== null && covers(h, line)) ?? hunks[0];
   const range = span?.new_range ? `${span.new_range[0]}-${span.new_range[1]}` : 'whole file';
   const agent = `${r.agent.name}${r.agent.model ? ` · ${r.agent.model}` : ''}`;
-  const proofAfter = r.proof.filter((p) => p.after_edit && p.kind !== 'other');
+  const after = r.proof.filter((p) => afterLastEdit(r, p));
+  const proofAfter = after.filter((p) => p.kind !== 'other');
+  const fmt = (p: Proof) => `${displayCommand(p.cmd).slice(0, 60)} · ${p.summary} · exit ${p.exit ?? '?'}`;
   const proofLine =
-    proofAfter.length === 0
-      ? r.proof.length
-        ? 'nothing ran after the edit (earlier: ' + r.proof.map((p) => p.kind).join(', ') + ')'
-        : 'nothing ran'
-      : proofAfter.map((p) => `${displayCommand(p.cmd).slice(0, 60)} · ${p.summary} · exit ${p.exit ?? '?'}`).join('\n           ');
+    proofAfter.length > 0
+      ? proofAfter.map(fmt).join('\n           ')
+      : after.length > 0
+        ? `no test/build/lint/typecheck after the last edit; also ran: ${fmt(after[after.length - 1])}`
+        : r.proof.some((p) => p.kind !== 'other')
+          ? `nothing ran after the last edit (earlier: ${[...new Set(r.proof.filter((p) => p.kind !== 'other').map((p) => p.kind))].join(', ')})`
+          : 'nothing ran';
   const price = r.price
     ? `${r.price.usd === null ? 'unpriced model' : `$${r.price.usd.toFixed(2)}`} · ${Math.round((r.price.input_tokens + r.price.output_tokens + r.price.cache_read_tokens + r.price.cache_write_tokens) / 1000)}k tokens · ${r.price.turns} turn${r.price.turns === 1 ? '' : 's'}`
     : 'not recorded';

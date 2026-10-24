@@ -16,8 +16,18 @@ export interface Verdict {
   detail: string;
 }
 
+// A run only counts as evidence if it happened after the LAST edit in the
+// record; a test between two edits proves nothing about the final code.
+export function lastEditTs(r: Record): number {
+  return r.hunks.reduce((m, h) => Math.max(m, Date.parse(h.ts) || 0), 0);
+}
+
+export function afterLastEdit(r: Record, p: Proof): boolean {
+  return p.after_edit && (Date.parse(p.ts) || 0) >= lastEditTs(r);
+}
+
 export function verdict(r: Record, claimText = ''): Verdict {
-  const after = r.proof.filter((p) => p.after_edit && VERIFYING.has(p.kind));
+  const after = r.proof.filter((p) => afterLastEdit(r, p) && VERIFYING.has(p.kind));
   const claimed = !!r.claim || CLAIM.test(claimText) || CLAIM.test(r.why.reason) || CLAIM.test(r.why.decision);
   if (after.length === 0) {
     return claimed
@@ -47,7 +57,7 @@ export function formatReceipt(r: Record, label: string): string {
   if (r.proof.length === 0) lines.push('  ran      nothing');
   for (const p of r.proof) {
     if (p.kind === 'other' && p.exit === 0) continue; // reads, greps: not evidence
-    lines.push(`  ${p.after_edit ? 'after ' : 'before'}   ${p.kind.padEnd(9)} exit ${String(p.exit ?? '?').padEnd(3)} ${displayCommand(p.cmd).slice(0, 60)}  →  ${p.summary}`);
+    lines.push(`  ${afterLastEdit(r, p) ? 'after ' : 'before'}   ${p.kind.padEnd(9)} exit ${String(p.exit ?? '?').padEnd(3)} ${displayCommand(p.cmd).slice(0, 60)}  →  ${p.summary}`);
   }
   lines.push(`  verdict  ${v.detail}`);
   return lines.join('\n');

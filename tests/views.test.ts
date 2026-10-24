@@ -118,6 +118,36 @@ test('verified when the last test after the edit passed; price counts landed lin
   assert.equal(all[0].subject, 'add four');
 });
 
+test('a test between two edits does not verify the final code', () => {
+  const dir = repo();
+  const base = { session_id: 'ete', cwd: dir };
+  handleClaudeCode({ ...base, hook_event_name: 'UserPromptSubmit', prompt: 'two edits' });
+  writeFileSync(join(dir, 'src', 'a.ts'), 'one\n2\nthree\n');
+  handleClaudeCode({
+    ...base,
+    hook_event_name: 'PostToolUse',
+    tool_name: 'Edit',
+    tool_input: { file_path: 'src/a.ts', old_string: 'two', new_string: '2' },
+    tool_response: {},
+  });
+  handleClaudeCode({ ...base, hook_event_name: 'PostToolUse', tool_name: 'Bash', tool_input: { command: 'npm test' }, tool_response: { stdout: 'Tests: 3 passed' } });
+  // make sure the second edit gets a strictly later timestamp
+  const until = Date.now() + 5;
+  while (Date.now() < until) { /* spin */ }
+  writeFileSync(join(dir, 'src', 'a.ts'), 'one\n2\n3\n');
+  handleClaudeCode({
+    ...base,
+    hook_event_name: 'PostToolUse',
+    tool_name: 'Edit',
+    tool_input: { file_path: 'src/a.ts', old_string: 'three', new_string: '3' },
+    tool_response: {},
+  });
+  handleClaudeCode({ ...base, hook_event_name: 'Stop', last_assistant_message: 'done, tests pass' });
+  const r = readPending(dir)[0];
+  assert.equal(r.proof[0].after_edit, true); // after the first edit...
+  assert.equal(verdict(r).status, 'claimed-not-run'); // ...but not after the last one
+});
+
 test('parseSince understands relative and absolute dates', () => {
   const d = parseSince('7d')!;
   assert.ok(Date.now() - Date.parse(d) > 6.9 * 86400e3);

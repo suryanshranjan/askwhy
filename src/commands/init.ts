@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { NOTES_REF, git, gitDir, hooksDir, repoRoot } from '../git.js';
+import { VERSION } from '../version.js';
 
 const EVENTS = ['UserPromptSubmit', 'PostToolUse', 'PostToolUseFailure', 'Stop'] as const;
 
@@ -22,15 +23,21 @@ interface Settings {
   [k: string]: unknown;
 }
 
-// How Claude Code should invoke us. A global install exposes `askwhy`; a
-// local checkout (dogfooding) points at this very file's compiled sibling.
+// How hooks should invoke us, decided by where this copy of askwhy lives:
+//  - npx cache (…/_npx/…): that directory can be wiped, so pin `npx -y askwhy@<version>`
+//  - an installed package (…/node_modules/askwhy/…): `askwhy` is on PATH
+//  - a source checkout: call this very build with node
 export function baseCommand(): string {
   const override = process.env.ASKWHY_COMMAND;
   if (override) return override;
-  if (process.env.npm_config_global === 'true') return 'askwhy';
-  const self = fileURLToPath(import.meta.url); // .../dist/commands/init.js
-  const cli = join(self, '..', '..', 'cli.js');
-  return `node "${cli.split('\\').join('/')}"`;
+  const self = fileURLToPath(import.meta.url).split('\\').join('/'); // .../dist/commands/init.js
+  if (self.includes('/_npx/')) return `npx -y askwhy@${VERSION}`;
+  if (self.includes('/node_modules/askwhy/')) return 'askwhy';
+  return `node "${join(self, '..', '..', 'cli.js').split('\\').join('/')}"`;
+}
+
+export function installedViaNpx(): boolean {
+  return baseCommand().startsWith('npx ');
 }
 
 export function hookCommand(): string {

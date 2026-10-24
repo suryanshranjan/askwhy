@@ -1,15 +1,14 @@
 {
   "name": "askwhy",
   "version": "0.1.0",
-  "description": "Per-hunk provenance for agent-written code: why a line exists, what was verified, and what it cost.",
+  "description": "git blame tells you who. git why tells you why. Per-hunk provenance for agent-written code: decision, rejected alternatives, prompt, proof, price.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
     "askwhy": "./dist/cli.js"
   },
   "files": [
-    "dist",
-    "assets"
+    "dist"
   ],
   "engines": {
     "node": ">=20"
@@ -34,5 +33,14 @@
     "@types/node": "^20.14.0",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0"
-  }
+  },
+  "author": "Suryansh Ranjan",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/suryanshranjan/askwhy.git"
+  },
+  "bugs": {
+    "url": "https://github.com/suryanshranjan/askwhy/issues"
+  },
+  "homepage": "https://github.com/suryanshranjan/askwhy#readme"
 }

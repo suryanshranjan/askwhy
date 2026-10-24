@@ -1,22 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="993" height="391" viewBox="0 0 993 391" style="white-space:pre" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="14">
-<rect width="993" height="391" rx="10" fill="#0d1117"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="849" height="496" viewBox="0 0 849 496" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="14">
+<rect width="849" height="496" rx="10" fill="#0d1117"/>
 <circle cx="22" cy="20" r="6" fill="#ff5f57"/><circle cx="42" cy="20" r="6" fill="#febc2e"/><circle cx="62" cy="20" r="6" fill="#28c840"/>
-<text x="496.5" y="24" fill="#7d8590" font-size="12" text-anchor="middle">real output · Claude Code on a production repo</text>
-<g xml:space="preserve">
-<text xml:space="preserve" x="24" y="52" fill="#3fb950" font-weight="700">$</text><text xml:space="preserve" x="40.86" y="52" fill="#e6edf3" font-weight="700">git why Backend/src/modules/common/services/phone.util.js:5</text>
-<text xml:space="preserve" x="24" y="73" fill="#79c0ff">Backend/src/modules/common/services/phone.util.js:5-13  (5b1ca075)</text>
-<text xml:space="preserve" x="40.86" y="94" fill="#d2a8ff">why</text><text xml:space="preserve" x="116.72999999999999" y="94" fill="#e6edf3">added `0091` to the existing prefix list in the regex instead of adding a separate check</text>
-<text xml:space="preserve" x="40.86" y="115" fill="#d2a8ff">because</text><text xml:space="preserve" x="116.72999999999999" y="115" fill="#e6edf3">smallest change; a number with a `0091` prefix is always 14 digits, so it can't be confused with the…</text>
-<text xml:space="preserve" x="40.86" y="136" fill="#d2a8ff">rejected</text><text xml:space="preserve" x="116.72999999999999" y="136" fill="#d29922">leaving the old `'00919876543210' → null` assertion (it contradicts the requested behaviour and woul…</text>
-<text xml:space="preserve" x="40.86" y="157" fill="#d2a8ff">prompt</text><text xml:space="preserve" x="116.72999999999999" y="157" fill="#7d8590">"In Backend/src/modules/common/services/phone.util.js, make normalizeIndianPhone also accept the int…</text>
-<text xml:space="preserve" x="40.86" y="178" fill="#d2a8ff">agent</text><text xml:space="preserve" x="116.72999999999999" y="178" fill="#7d8590">claude-code · claude-opus-5-5</text>
-<text xml:space="preserve" x="40.86" y="199" fill="#d2a8ff">proof</text><text xml:space="preserve" x="116.72999999999999" y="199" fill="#7d8590">nothing ran</text>
-<text xml:space="preserve" x="40.86" y="220" fill="#d2a8ff">price</text><text xml:space="preserve" x="116.72999999999999" y="220" fill="#79c0ff">$0.32 · 145k tokens · 3 turns</text>
-<text xml:space="preserve" x="24" y="241" fill="#79c0ff"></text>
-<text xml:space="preserve" x="24" y="262" fill="#3fb950" font-weight="700">$</text><text xml:space="preserve" x="40.86" y="262" fill="#e6edf3" font-weight="700">askwhy receipt</text>
-<text xml:space="preserve" x="24" y="283" fill="#3fb950" font-weight="700">✓ VERIFIED</text><text xml:space="preserve" x="108.3" y="283" fill="#7d8590">  069c1616  ·  claude-code · claude-opus-5-5</text>
-<text xml:space="preserve" x="40.86" y="304" fill="#d2a8ff">files</text><text xml:space="preserve" x="116.72999999999999" y="304" fill="#7d8590">Backend/tests/phone.util.test.js</text>
-<text xml:space="preserve" x="40.86" y="325" fill="#d2a8ff">after</text><text xml:space="preserve" x="116.72999999999999" y="325" fill="#7d8590">test      exit 0   node --test Backend/tests/phone.util.test.js  →  7 passed, 0 failed</text>
-<text xml:space="preserve" x="40.86" y="346" fill="#d2a8ff">verdict</text><text xml:space="preserve" x="116.72999999999999" y="346" fill="#7d8590">test ok</text>
-</g>
+<text x="424.5" y="24" fill="#7d8590" font-size="12" text-anchor="middle">real output · Claude Code on a production repo</text>
+<text xml:space="preserve" x="24.0" y="52" fill="#3fb950" font-weight="700">$</text><text xml:space="preserve" x="40.9" y="52" fill="#e6edf3" font-weight="700">git why Backend/src/modules/common/services/phone.util.js:5</text>
+<text xml:space="preserve" x="24.0" y="73" fill="#79c0ff">Backend/src/modules/common/services/phone.util.js:5-13  (5b1ca075)</text>
+<text xml:space="preserve" x="40.9" y="94" fill="#d2a8ff">why</text><text xml:space="preserve" x="116.7" y="94" fill="#e6edf3">added `0091` to the existing prefix list in the regex instead of adding a separate</text>
+<text xml:space="preserve" x="116.7" y="115" fill="#e6edf3">check</text>
+<text xml:space="preserve" x="40.9" y="136" fill="#d2a8ff">because</text><text xml:space="preserve" x="116.7" y="136" fill="#e6edf3">smallest change; a number with a `0091` prefix is always 14 digits, so it can't be</text>
+<text xml:space="preserve" x="116.7" y="157" fill="#e6edf3">confused with the `+91`, `91` or `0` forms</text>
+<text xml:space="preserve" x="40.9" y="178" fill="#d2a8ff">rejected</text><text xml:space="preserve" x="116.7" y="178" fill="#d29922">leaving the old `'00919876543210' → null` assertion (it contradicts the requested</text>
+<text xml:space="preserve" x="116.7" y="199" fill="#d29922">behaviour and would fail)</text>
+<text xml:space="preserve" x="40.9" y="220" fill="#d2a8ff">prompt</text><text xml:space="preserve" x="116.7" y="220" fill="#7d8590">"In Backend/src/modules/common/services/phone.util.js, make normalizeIndianPhone</text>
+<text xml:space="preserve" x="116.7" y="241" fill="#7d8590">also accept the internation..."</text>
+<text xml:space="preserve" x="40.9" y="262" fill="#d2a8ff">agent</text><text xml:space="preserve" x="116.7" y="262" fill="#7d8590">claude-code · claude-opus-5-5</text>
+<text xml:space="preserve" x="40.9" y="283" fill="#d2a8ff">proof</text><text xml:space="preserve" x="116.7" y="283" fill="#7d8590">nothing ran</text>
+<text xml:space="preserve" x="40.9" y="304" fill="#d2a8ff">price</text><text xml:space="preserve" x="116.7" y="304" fill="#79c0ff">$0.32 · 145k tokens · 3 turns</text>
+<text xml:space="preserve" x="24.0" y="325" fill="#79c0ff"></text>
+<text xml:space="preserve" x="24.0" y="346" fill="#3fb950" font-weight="700">$</text><text xml:space="preserve" x="40.9" y="346" fill="#e6edf3" font-weight="700">askwhy receipt</text>
+<text xml:space="preserve" x="24.0" y="367" fill="#3fb950" font-weight="700">✓ VERIFIED</text><text xml:space="preserve" x="108.3" y="367" fill="#7d8590">  069c1616  ·  claude-code · claude-opus-5-5</text>
+<text xml:space="preserve" x="40.9" y="388" fill="#d2a8ff">files</text><text xml:space="preserve" x="116.7" y="388" fill="#7d8590">Backend/tests/phone.util.test.js</text>
+<text xml:space="preserve" x="40.9" y="409" fill="#d2a8ff">after</text><text xml:space="preserve" x="116.7" y="409" fill="#7d8590">test      exit 0   node --test Backend/tests/phone.util.test.js  →  7 passed, 0</text>
+<text xml:space="preserve" x="116.7" y="430" fill="#7d8590">failed</text>
+<text xml:space="preserve" x="40.9" y="451" fill="#d2a8ff">verdict</text><text xml:space="preserve" x="116.7" y="451" fill="#7d8590">test ok</text>
 </svg>

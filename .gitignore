@@ -8,3 +8,4 @@ dist/
 .DS_Store
 # local dogfood state never belongs in the repo
 .git/why/
+*.tgz
