@@ -24,7 +24,13 @@ Local only. No daemon, no network, no model calls. Records are deterministic whe
 
 ## Status
 
-Pre-alpha. Nothing here works yet. See `docs/PLAN.md`.
+Pre-alpha, Claude Code only, dogfooding on a real repo. Working today:
+
+- `askwhy init [--local]`: Claude Code hooks, `git why` alias, notes ref, post-commit hook, agent instruction block
+- capture of prompt, Edit/Write/MultiEdit hunks (line ranges + content hash), Bash-made file changes, every command with exit code and a one-line summary, token usage and price from the transcript, the agent's `why` block
+- `askwhy attach` on commit, `git why <path>[:<line>]` via git blame, `askwhy pending`, `askwhy doctor`
+
+Not yet: `receipt` and `price` views, Codex capture, `export`, npm publish. See `docs/PLAN.md`.
 
 ## Install (target)
 
