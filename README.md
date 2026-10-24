@@ -5,7 +5,7 @@
 [![ci](https://github.com/suryanshranjan/askwhy/actions/workflows/ci.yml/badge.svg)](https://github.com/suryanshranjan/askwhy/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/askwhy)](https://www.npmjs.com/package/askwhy)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
-![agents](https://img.shields.io/badge/agents-Claude%20Code%20%7C%20Codex-8A2BE2)
+![agents](https://img.shields.io/badge/agents-Claude%20Code%20%7C%20Codex%20%7C%20Antigravity-8A2BE2)
 ![local only](https://img.shields.io/badge/runs-100%25%20local-2ea44f)
 
 ![askwhy: real output from Claude Code on a production repo](docs/demo.svg)
@@ -88,7 +88,7 @@ Pre-alpha.
 
 - Claude Code: verified end to end on a real repo (capture, commit, `git why`, `receipt`, `price`, `export`).
 - Codex: verified end to end against a live Codex CLI 0.160 session (capture, exit codes from the rollout log, commit, `git why`, `receipt`). OpenAI models are not in the built-in price table yet; add their rates to `.git/why/prices.json` to price Codex turns.
-- Antigravity (IDE 1.107): built against its documented hook format and checked by replaying real Antigravity transcripts (edits, background commands, plan approvals); not yet verified with the hook firing in a live session.
+- Antigravity (IDE 1.107): verified end to end against a live Antigravity session with Gemini 3.8 Flash (Stop hook, prompt, edit, `why`, command exit code, commit, `git why`, `receipt`), and checked by replaying 16 real past transcripts (background commands, plan approvals). No token usage is recorded by Antigravity, so no price.
 - Not yet: Cursor and Gemini CLI, hosted PR view.
 
 ## License
