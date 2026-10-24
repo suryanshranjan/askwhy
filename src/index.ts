@@ -1,4 +1,5 @@
 import { handleClaudeCode, handleCodex, readStdinJson } from './hooks/core.js';
+import { handleAntigravity, type AntigravityInput } from './hooks/antigravity.js';
 import { init } from './commands/init.js';
 import { doctor } from './commands/doctor.js';
 import { attach } from './commands/attach.js';
@@ -72,6 +73,14 @@ export async function run(argv: string[]): Promise<number> {
       const input = readStdinJson();
       if (input && rest[0] === 'claude-code') handleClaudeCode(input);
       if (input && rest[0] === 'codex') handleCodex(input);
+      if (rest[0] === 'antigravity') {
+        try {
+          if (input) handleAntigravity(input as AntigravityInput);
+        } catch {
+          // never block the agent
+        }
+        process.stdout.write('{}'); // Antigravity expects a JSON object back
+      }
       return 0; // never fail the agent's session
     }
     case 'init':
