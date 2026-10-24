@@ -142,6 +142,11 @@ export function init(cwd: string, args: string[] = []): number {
     if (!local) process.stdout.write(`${installAgentBlock(root, false, 'AGENTS.md')}\n`);
     else process.stdout.write('  --local: AGENTS.md left alone, so Codex records will have no `why` until it is added\n');
   }
+  if (!args.includes('--no-antigravity') && antigravityPresent()) {
+    const file = installAntigravityHooks(root, `${baseCommand()} hook antigravity`, local);
+    process.stdout.write(`antigravity hooks: ${file}\n`);
+    if (!local) process.stdout.write(`${installAgentBlock(root, false, 'AGENTS.md')}\n`);
+  }
   for (const line of installGit(root)) process.stdout.write(`${line}\n`);
   process.stdout.write(`${installAgentBlock(root, local)}\n`);
   process.stdout.write('\nNext: edit something with your agent, commit, then run `git why <file>`.\n');
@@ -174,6 +179,31 @@ export function installCodexHooks(root: string, command: string, local: boolean)
   }
   writeFileSync(file, JSON.stringify(cfg, null, 2) + '\n', 'utf8');
   if (local) excludeLocally(root, '.codex/hooks.json');
+  return file;
+}
+
+function antigravityPresent(): boolean {
+  return ['antigravity-ide', 'antigravity', 'antigravity-cli'].some((p) => existsSync(join(homedir(), '.gemini', p)));
+}
+
+// Antigravity reads <repo>/.agents/hooks.json: named hooks, each mapping
+// events to handlers. Only Stop is needed; the adapter replays the
+// conversation transcript from there.
+export function installAntigravityHooks(root: string, command: string, local: boolean): string {
+  const dir = join(root, '.agents');
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  const file = join(dir, 'hooks.json');
+  let cfg: { [name: string]: unknown } = {};
+  if (existsSync(file)) {
+    try {
+      cfg = JSON.parse(readFileSync(file, 'utf8')) as { [name: string]: unknown };
+    } catch {
+      throw new Error(`${file} is not valid JSON; fix it and re-run`);
+    }
+  }
+  cfg.askwhy = { Stop: [{ type: 'command', command, timeout: 30 }] };
+  writeFileSync(file, JSON.stringify(cfg, null, 2) + '\n', 'utf8');
+  if (local) excludeLocally(root, '.agents/hooks.json');
   return file;
 }
 
