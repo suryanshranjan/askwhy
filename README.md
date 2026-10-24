@@ -50,7 +50,7 @@ Local only. No daemon, no network, no model calls. Records are deterministic whe
 
 ## How it works
 
-1. `askwhy init` installs hooks into the agent (Claude Code `.claude/settings.json`, Codex `.codex/hooks.json`), a `post-commit` git hook, the `git why` alias, and a short instruction asking the agent to end edit turns with a fenced `why` block.
+1. `askwhy init` installs hooks into the agent (Claude Code `.claude/settings.json`, Codex `.codex/hooks.json`, Antigravity `.agents/hooks.json`), a `post-commit` git hook, the `git why` alias, and a short instruction asking the agent to end edit turns with a fenced `why` block.
 2. During a turn the hooks record the prompt (secrets redacted), every edit as line ranges plus a content hash, every shell command with its exit code and a one-line summary, and the agent's `why` block.
 3. Token usage comes from the agent's own transcript and is priced from a built-in table (override in `.git/why/prices.json`). Unknown models stay unpriced; nothing is estimated.
 4. On commit, pending records for the committed files move into a note on `refs/notes/why`. `git why` uses `git blame` to find the commit that last touched a line, then the record whose hunk covers it.
@@ -66,10 +66,13 @@ npx askwhy init              # or: npm i -g askwhy && askwhy init  (hooks start 
 
 Codex: trust the new hooks once with `/hooks` inside Codex.
 
+Antigravity: its hooks send no tool details, so askwhy reads the conversation transcript when the agent stops. Edits come with Antigravity's own one-line description, which askwhy uses as the `why` when the agent writes no `why` block. Antigravity records no token usage, so these records have no price.
+
 ## Commands
 
 ```
-askwhy init [--local] [--no-codex]   install hooks, notes ref, git alias, agent instruction
+askwhy init [--local] [--no-codex] [--no-antigravity]
+                                     install hooks, notes ref, git alias, agent instruction
 git why <path>[:<line>] [--json]     intent for the hunk covering a line, or a file's history
 askwhy receipt [sha|pending]         what was verified after the edit; exit 3 if a claim was not backed
 askwhy price [--since 7d] [--by commit|agent|session|file]
@@ -85,6 +88,7 @@ Pre-alpha.
 
 - Claude Code: verified end to end on a real repo (capture, commit, `git why`, `receipt`, `price`, `export`).
 - Codex: verified end to end against a live Codex CLI 0.160 session (capture, exit codes from the rollout log, commit, `git why`, `receipt`). OpenAI models are not in the built-in price table yet; add their rates to `.git/why/prices.json` to price Codex turns.
+- Antigravity (IDE 1.107): built against its documented hook format and checked by replaying real Antigravity transcripts (edits, background commands, plan approvals); not yet verified with the hook firing in a live session.
 - Not yet: Cursor and Gemini CLI, hosted PR view.
 
 ## License
