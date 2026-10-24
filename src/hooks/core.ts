@@ -1,5 +1,5 @@
-// Hook handler shared by Claude Code and Codex. Invoked as
-// `askwhy hook <claude-code|codex>` with the hook's JSON on stdin. Never throws out to Claude Code: a failure here must
+// Hook handler shared by Claude Code, Codex and Antigravity. Invoked as
+// `askwhy hook <claude-code|codex|antigravity>` with the hook's JSON on stdin. Never throws out to the agent: a failure here must
 // not interrupt the user's session, so errors go to a log file and exit 0.
 
 import { existsSync, readFileSync, appendFileSync } from 'node:fs';
@@ -15,7 +15,7 @@ import { parseWhyBlock } from '../whyblock.js';
 import { usageSince, codexUsage, codexExits } from '../transcript.js';
 import { CLAIM } from '../commands/receipt.js';
 import { locateChunk, parsePatch } from '../patch.js';
-import type { AgentName, Hunk, Proof, Record } from '../record.js';
+import type { AgentName, Hunk, Proof, Record, Why } from '../record.js';
 
 export interface HookInput {
   agent?: AgentName; // set by the dispatcher, not by the agent
@@ -50,9 +50,20 @@ export interface HookInput {
   error?: string;
   last_assistant_message?: string;
   stop_hook_active?: boolean;
+  ts?: string; // event time, when replaying a transcript after the fact
+  why_fallback?: Why; // used when the final message has no why block
 }
 
-const EDIT_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit']);
+// Claude Code, then Antigravity (whose tool calls are replayed from its transcript)
+const EDIT_TOOLS = new Set([
+  'Edit',
+  'Write',
+  'MultiEdit',
+  'NotebookEdit',
+  'write_to_file',
+  'replace_file_content',
+  'multi_replace_file_content',
+]);
 
 function now(): string {
   return new Date().toISOString();
@@ -83,7 +94,7 @@ function agentOf(input: HookInput) {
   return { name: input.agent ?? ('claude-code' as const), session_id: input.session_id, model: input.model };
 }
 
-const SHELL_TOOLS = new Set(['Bash', 'shell', 'exec_command', 'local_shell', 'container.exec', 'unified_exec']);
+const SHELL_TOOLS = new Set(['Bash', 'shell', 'exec_command', 'local_shell', 'container.exec', 'unified_exec', 'run_command']);
 
 function commandText(input: HookInput): string {
   const c = input.tool_input?.command;
@@ -144,7 +155,7 @@ function onPrompt(root: string, input: HookInput): void {
   const rec = loadOrStartTurn(root, agentOf(input));
   const fresh: Record = { ...rec, id: previous ? randomUUID() : rec.id, hunks: [], proof: [], price: null };
   const text = input.prompt ?? '';
-  fresh.prompt = { text: redact(text), hash: sha256(text), ts: now() };
+  fresh.prompt = { text: redact(text), hash: sha256(text), ts: input.ts ?? now() };
   fresh.why = { decision: '', reason: '', rejected: [], source: 'none' };
   saveTurn(root, fresh);
 }
@@ -164,7 +175,7 @@ function onPostToolUse(root: string, input: HookInput): void {
 
 function onPatch(root: string, input: HookInput, patch: string): void {
   const rec = loadOrStartTurn(root, agentOf(input));
-  const ts = now();
+  const ts = input.ts ?? now();
   for (const f of parsePatch(patch)) {
     const path = toRepoPath(root, absPath(root, f.moveTo ?? f.path));
     if (f.op === 'delete') {
@@ -193,13 +204,13 @@ function onEdit(root: string, input: HookInput, tool: string): void {
   if (after === null) return;
   const path = toRepoPath(root, abs);
   const rec = loadOrStartTurn(root, agentOf(input));
-  const ts = now();
+  const ts = input.ts ?? now();
   const hunks: Hunk[] = [];
 
-  if (tool === 'Edit' && input.tool_input?.old_string !== undefined) {
+  if (input.tool_input?.old_string !== undefined) {
     const m = mapEditAfter(after, input.tool_input.old_string, input.tool_input.new_string ?? '');
     hunks.push({ path, ...m, tool, ts });
-  } else if (tool === 'MultiEdit' && input.tool_input?.edits) {
+  } else if (input.tool_input?.edits) {
     for (const e of input.tool_input.edits) {
       const m = mapEditAfter(after, e.old_string, e.new_string);
       hunks.push({ path, ...m, tool, ts });
@@ -217,7 +228,7 @@ function onBash(root: string, input: HookInput, exit: number | null): void {
   const cmd = commandText(input);
   if (!cmd) return;
   const rec = loadOrStartTurn(root, agentOf(input));
-  const ts = now();
+  const ts = input.ts ?? now();
   const { out } = responseText(input);
   const proof: Proof = {
     cmd: redact(cmd).slice(0, 500),
@@ -255,16 +266,18 @@ function onToolFailure(root: string, input: HookInput): void {
 function onStop(root: string, input: HookInput): void {
   const rec = loadTurn(root, input.session_id);
   if (!rec) return;
-  rec.ended_at = now();
+  rec.ended_at = input.ts ?? now();
   if (input.transcript_path) rec.agent.transcript_path = input.transcript_path;
+  const why = input.last_assistant_message ? parseWhyBlock(input.last_assistant_message) : null;
+  if (why) rec.why = why;
+  else if (input.why_fallback) rec.why = input.why_fallback;
   if (input.last_assistant_message) {
-    const why = parseWhyBlock(input.last_assistant_message);
-    if (why) rec.why = why;
     const claim = CLAIM.exec(input.last_assistant_message.replace(/```why[\s\S]*?```/g, ''));
     if (claim) rec.claim = claim[0];
   }
   if (input.transcript_path && input.agent === 'codex') fillCodexExits(rec, input.transcript_path, input.turn_id ?? null);
-  if (input.transcript_path) {
+  // Antigravity's transcript carries no token usage: its records stay unpriced
+  if (input.transcript_path && input.agent !== 'antigravity') {
     const usage =
       input.agent === 'codex'
         ? codexUsage(input.transcript_path, input.turn_id ?? null, rec.prompt?.ts ?? null, input.model, root)

@@ -4,7 +4,7 @@
 
 export const RECORD_VERSION = 1;
 
-export type AgentName = 'claude-code' | 'codex';
+export type AgentName = 'claude-code' | 'codex' | 'antigravity';
 
 export interface AgentInfo {
   name: AgentName;
