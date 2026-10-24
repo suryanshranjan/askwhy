@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mapEdit, sha256 } from '../src/hunks.js';
+import { changedLines, mapEdit, mapEditAfter, sha256 } from '../src/hunks.js';
 
 const before = ['a', 'b', 'c', 'd', 'e'].join('\n') + '\n';
 
@@ -44,4 +44,17 @@ test('missing old_string records whole file', () => {
   const r = mapEdit({ before, oldString: 'nope', newString: 'z' });
   assert.equal(r.old_range, null);
   assert.deepEqual(r.new_range, [1, 5]);
+});
+
+test('mapEditAfter trims context lines both sides share', () => {
+  const after = 'export function add(a, b) {\n  return a + b;\n}\n\nexport function multiply(a, b) {\n  return a * b;\n}\n';
+  // whole-file replacement that only appends multiply
+  const m = mapEditAfter(after, 'export function add(a, b) {\n  return a + b;\n}\n', after);
+  assert.deepEqual(m.new_range, [4, 7]);
+  assert.equal(m.old_range, null); // nothing old changed: a pure insertion
+});
+
+test('changedLines keeps a pure deletion whole', () => {
+  assert.deepEqual(changedLines('a\nb\nc', 'a\nc'), { lead: 0, oldCount: 3, newCount: 2 });
+  assert.deepEqual(changedLines('x\ny\nz\n', 'x\nY\nz\n'), { lead: 1, oldCount: 1, newCount: 1 });
 });

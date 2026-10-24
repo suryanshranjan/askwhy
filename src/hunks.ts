@@ -40,6 +40,28 @@ function countLines(text: string): number {
   return n;
 }
 
+function splitLines(text: string): string[] {
+  if (text === '') return [];
+  return (text.endsWith('\n') ? text.slice(0, -1) : text).split('\n');
+}
+
+// Agents often send context lines with an edit (Antigravity may replace the
+// whole file to add three lines). Drop the lines that are the same at the
+// start and end of both sides so the hunk covers what actually changed.
+// A pure deletion keeps its full range: an empty new range would point at
+// no line at all.
+export function changedLines(oldString: string, newString: string): { lead: number; oldCount: number; newCount: number } {
+  const a = splitLines(oldString);
+  const b = splitLines(newString);
+  let lead = 0;
+  while (lead < a.length && lead < b.length && a[lead] === b[lead]) lead++;
+  let tail = 0;
+  while (tail < a.length - lead && tail < b.length - lead && a[a.length - 1 - tail] === b[b.length - 1 - tail]) tail++;
+  const newCount = b.length - lead - tail;
+  if (newCount <= 0) return { lead: 0, oldCount: a.length, newCount: b.length };
+  return { lead, oldCount: a.length - lead - tail, newCount };
+}
+
 // PostToolUse runs after the edit, so we only have the post-edit content.
 // Locate newString in it (must be unique) and derive both ranges from there.
 export function mapEditAfter(after: string, oldString: string, newString: string): Omit<MappedEdit, 'after'> {
@@ -48,11 +70,10 @@ export function mapEditAfter(after: string, oldString: string, newString: string
     const unique = first !== -1 && after.indexOf(newString, first + 1) === -1;
     if (unique) {
       const startLine = lineOfOffset(after, first);
-      const oldLines = countLines(oldString);
-      const newLines = countLines(newString);
+      const { lead, oldCount, newCount } = changedLines(oldString, newString);
       return {
-        old_range: oldLines > 0 ? [startLine, startLine + oldLines - 1] : null,
-        new_range: newLines > 0 ? [startLine, startLine + newLines - 1] : null,
+        old_range: oldCount > 0 ? [startLine + lead, startLine + lead + oldCount - 1] : null,
+        new_range: newCount > 0 ? [startLine + lead, startLine + lead + newCount - 1] : null,
         content_hash: sha256(newString),
       };
     }
