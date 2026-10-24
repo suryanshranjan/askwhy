@@ -7,6 +7,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync } from 'node:fs';
 import { join } from 'node:path';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { NOTES_REF, git, gitDir, repoRoot, tryGit } from '../git.js';
 
@@ -107,8 +108,8 @@ export function installGit(root: string): string[] {
   return done;
 }
 
-export function installAgentBlock(root: string, local = false): string {
-  const file = join(root, local ? 'CLAUDE.local.md' : 'CLAUDE.md');
+export function installAgentBlock(root: string, local = false, name?: string): string {
+  const file = join(root, name ?? (local ? 'CLAUDE.local.md' : 'CLAUDE.md'));
   const existing = existsSync(file) ? readFileSync(file, 'utf8') : '';
   if (existing.includes('## askwhy')) return `${file} already has the askwhy section`;
   writeFileSync(file, existing.replace(/\s*$/, existing ? '\n\n' : '') + AGENT_BLOCK, 'utf8');
@@ -128,8 +129,53 @@ export function init(cwd: string, args: string[] = []): number {
   const command = hookCommand();
   const settings = installClaudeHooks(root, command, local);
   process.stdout.write(`claude code hooks: ${settings}\n  command: ${command}\n`);
+  if (!args.includes('--no-codex') && codexPresent()) {
+    const file = installCodexHooks(root, `${baseCommand()} hook codex`, local);
+    process.stdout.write(`codex hooks: ${file}\n  trust them once in Codex with /hooks (project .codex/ must be trusted)\n`);
+    if (!local) process.stdout.write(`${installAgentBlock(root, false, 'AGENTS.md')}\n`);
+    else process.stdout.write('  --local: AGENTS.md left alone, so Codex records will have no `why` until it is added\n');
+  }
   for (const line of installGit(root)) process.stdout.write(`${line}\n`);
   process.stdout.write(`${installAgentBlock(root, local)}\n`);
-  process.stdout.write('\nNext: edit something with Claude Code, commit, then run `git why <file>`.\n');
+  process.stdout.write('\nNext: edit something with your agent, commit, then run `git why <file>`.\n');
   return 0;
+}
+
+function codexPresent(): boolean {
+  return existsSync(join(homedir(), '.codex'));
+}
+
+// Codex reads project hooks from <repo>/.codex/hooks.json (same shape as
+// Claude Code's). With --local the file is kept out of git via info/exclude.
+export function installCodexHooks(root: string, command: string, local: boolean): string {
+  const dir = join(root, '.codex');
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  const file = join(dir, 'hooks.json');
+  let cfg: Settings = {};
+  if (existsSync(file)) {
+    try {
+      cfg = JSON.parse(readFileSync(file, 'utf8')) as Settings;
+    } catch {
+      throw new Error(`${file} is not valid JSON; fix it and re-run`);
+    }
+  }
+  cfg.hooks ??= {};
+  for (const event of ['UserPromptSubmit', 'PostToolUse', 'Stop'] as const) {
+    const list = (cfg.hooks[event] ??= []);
+    if (list.some((e) => e.hooks.some((h) => h.command.includes('hook codex')))) continue;
+    list.push({ hooks: [{ type: 'command', command, timeout: 20 }] });
+  }
+  writeFileSync(file, JSON.stringify(cfg, null, 2) + '\n', 'utf8');
+  if (local) excludeLocally(root, '.codex/hooks.json');
+  return file;
+}
+
+function excludeLocally(root: string, pattern: string): void {
+  const dir = gitDir(root);
+  if (!dir) return;
+  const file = join(dir, 'info', 'exclude');
+  const body = existsSync(file) ? readFileSync(file, 'utf8') : '';
+  if (body.split('\n').includes(pattern)) return;
+  mkdirSync(join(dir, 'info'), { recursive: true });
+  writeFileSync(file, body.replace(/\s*$/, body ? '\n' : '') + pattern + '\n', 'utf8');
 }
