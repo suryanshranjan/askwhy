@@ -15,6 +15,7 @@ interface Row {
 }
 
 function fmtUsd(n: number): string {
+  if (n > 0 && n < 0.01) return `$${n.toFixed(4)}`; // per-line costs are often fractions of a cent
   return `$${n.toFixed(2)}`;
 }
 
