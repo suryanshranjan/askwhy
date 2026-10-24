@@ -9,7 +9,7 @@ import { exportTrace } from './commands/export.js';
 import { readPending } from './pending.js';
 import { repoRoot } from './git.js';
 
-const VERSION = '0.0.1';
+const VERSION = '0.1.0';
 
 const USAGE = `askwhy ${VERSION}
 

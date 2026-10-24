@@ -1,6 +1,6 @@
 {
   "name": "askwhy",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Per-hunk provenance for agent-written code: why a line exists, what was verified, and what it cost.",
   "license": "Apache-2.0",
   "type": "module",
@@ -17,7 +17,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
-    "test": "node --test --import tsx tests/**/*.test.ts",
+    "test": "node --test --import tsx \"tests/*.test.ts\"",
     "lint": "tsc -p tsconfig.json --noEmit",
     "prepublishOnly": "npm run build"
   },

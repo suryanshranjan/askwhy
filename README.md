@@ -1,8 +1,17 @@
 # askwhy
 
-Ask why any line exists. Provenance for agent-written code, for Git.
+**`git blame` tells you who. `git why` tells you why.**
 
-`git blame` tells you who. For every change a coding agent makes, askwhy keeps five facts next to the code, in git notes:
+[![ci](https://github.com/suryanshranjan/askwhy/actions/workflows/ci.yml/badge.svg)](https://github.com/suryanshranjan/askwhy/actions/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+![agents](https://img.shields.io/badge/agents-Claude%20Code%20%7C%20Codex-8A2BE2)
+![local only](https://img.shields.io/badge/runs-100%25%20local-2ea44f)
+
+![askwhy: real output from Claude Code on a production repo](docs/demo.svg)
+
+AI agents now write a large share of the code in many repos, and the reasoning behind each change dies with the chat window. Months later nobody knows why a line is the way it is, what else was tried, or whether anyone actually ran the tests.
+
+askwhy keeps that context next to the code, in git. For every change an agent makes it records five things:
 
 - **why**: the decision and the reason
 - **rejected**: the alternatives the agent considered and dropped
@@ -10,7 +19,13 @@ Ask why any line exists. Provenance for agent-written code, for Git.
 - **proof**: what was verified after the edit, with exit codes, or that nothing was
 - **price**: what the change cost
 
-Real output from the first run on a production codebase (Claude Code, Opus 5.5):
+```
+npx askwhy init        # once per repo (npm package coming soon; see Install)
+# ...work with Claude Code or Codex as usual, commit as usual...
+git why src/payments/retry.ts:42
+```
+
+Text version of the screenshot above, plus the receipt for a change where the agent was told not to run tests:
 
 ```
 $ git why Backend/src/modules/common/services/phone.util.js:5
