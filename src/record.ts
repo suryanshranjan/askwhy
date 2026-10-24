@@ -11,6 +11,7 @@ export interface AgentInfo {
   model?: string;
   session_id: string;
   turn_id?: string;
+  transcript_path?: string; // local path, used to re-price at commit time
 }
 
 export interface PromptInfo {
@@ -81,6 +82,7 @@ export interface Record {
   proof: Proof[];
   price: Price | null;
   trace: Trace;
+  ended_at?: string; // when the turn stopped; bounds the usage window
   claim?: string; // verification claim found in the agent's final message, e.g. "tests pass"
   commit?: string; // set once attached to a commit
 }

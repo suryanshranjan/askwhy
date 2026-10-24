@@ -5,6 +5,7 @@ import { repoRoot, tryGit } from '../git.js';
 import { readRecords } from '../notes.js';
 import { readPending } from '../pending.js';
 import type { Proof, Record } from '../record.js';
+import { displayCommand } from '../proof.js';
 
 export const CLAIM = /\b(tests? (?:now )?pass(?:es|ing)?|all (?:tests|checks) (?:pass|green)|build (?:passes|succeeds|is green)|typecheck(?:s)? (?:pass|clean)|lint(?:s)? (?:pass|clean)|verified|works now)\b/i;
 
@@ -46,7 +47,7 @@ export function formatReceipt(r: Record, label: string): string {
   if (r.proof.length === 0) lines.push('  ran      nothing');
   for (const p of r.proof) {
     if (p.kind === 'other' && p.exit === 0) continue; // reads, greps: not evidence
-    lines.push(`  ${p.after_edit ? 'after ' : 'before'}   ${p.kind.padEnd(9)} exit ${String(p.exit ?? '?').padEnd(3)} ${p.cmd.slice(0, 60)}  →  ${p.summary}`);
+    lines.push(`  ${p.after_edit ? 'after ' : 'before'}   ${p.kind.padEnd(9)} exit ${String(p.exit ?? '?').padEnd(3)} ${displayCommand(p.cmd).slice(0, 60)}  →  ${p.summary}`);
   }
   lines.push(`  verdict  ${v.detail}`);
   return lines.join('\n');

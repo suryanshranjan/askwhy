@@ -11,16 +11,33 @@ export interface Rate {
   out: number;
   cache_read: number;
   cache_write: number;
+  cache_write_1h?: number;
 }
 
+// From platform.claude.com/docs/en/about-claude/pricing, 2026-10-24.
+// cache_write is the 5-minute rate; cache_write_1h is used when the transcript
+// splits cache creation by TTL. Haiku 5.5 uses the <=100k-prompt tier.
 const BUILT_IN: Record<string, Rate> = {
-  'claude-opus-4-1': { in: 15, out: 75, cache_read: 1.5, cache_write: 18.75 },
-  'claude-opus-4': { in: 15, out: 75, cache_read: 1.5, cache_write: 18.75 },
-  'claude-sonnet-4-5': { in: 3, out: 15, cache_read: 0.3, cache_write: 3.75 },
-  'claude-sonnet-4': { in: 3, out: 15, cache_read: 0.3, cache_write: 3.75 },
-  'claude-3-7-sonnet': { in: 3, out: 15, cache_read: 0.3, cache_write: 3.75 },
-  'claude-3-5-haiku': { in: 0.8, out: 4, cache_read: 0.08, cache_write: 1 },
-  'claude-haiku-4-5': { in: 1, out: 5, cache_read: 0.1, cache_write: 1.25 },
+  'claude-fable-5-1': { in: 10, out: 50, cache_read: 0.25, cache_write: 12.5, cache_write_1h: 20 },
+  'claude-mythos-5-1': { in: 10, out: 50, cache_read: 0.25, cache_write: 12.5, cache_write_1h: 20 },
+  'claude-fable-5': { in: 10, out: 50, cache_read: 1, cache_write: 12.5, cache_write_1h: 20 },
+  'claude-mythos-5': { in: 10, out: 50, cache_read: 1, cache_write: 12.5, cache_write_1h: 20 },
+  'claude-opus-5-5': { in: 4, out: 20, cache_read: 0.2, cache_write: 5, cache_write_1h: 8 },
+  'claude-opus-5': { in: 5, out: 25, cache_read: 0.5, cache_write: 6.25, cache_write_1h: 10 },
+  'claude-opus-4-8': { in: 5, out: 25, cache_read: 0.5, cache_write: 6.25, cache_write_1h: 10 },
+  'claude-opus-4-7': { in: 5, out: 25, cache_read: 0.5, cache_write: 6.25, cache_write_1h: 10 },
+  'claude-opus-4-6': { in: 5, out: 25, cache_read: 0.5, cache_write: 6.25, cache_write_1h: 10 },
+  'claude-opus-4-5': { in: 5, out: 25, cache_read: 0.5, cache_write: 6.25, cache_write_1h: 10 },
+  'claude-opus-4-1': { in: 15, out: 75, cache_read: 1.5, cache_write: 18.75, cache_write_1h: 30 },
+  'claude-opus-4': { in: 15, out: 75, cache_read: 1.5, cache_write: 18.75, cache_write_1h: 30 },
+  'claude-sonnet-5-5': { in: 2, out: 10, cache_read: 0.1, cache_write: 2.5, cache_write_1h: 4 },
+  'claude-sonnet-5': { in: 2, out: 10, cache_read: 0.2, cache_write: 2.5, cache_write_1h: 4 },
+  'claude-sonnet-4-6': { in: 3, out: 15, cache_read: 0.3, cache_write: 3.75, cache_write_1h: 6 },
+  'claude-sonnet-4-5': { in: 3, out: 15, cache_read: 0.3, cache_write: 3.75, cache_write_1h: 6 },
+  'claude-sonnet-4': { in: 3, out: 15, cache_read: 0.3, cache_write: 3.75, cache_write_1h: 6 },
+  'claude-haiku-5-5': { in: 0.1, out: 0.5, cache_read: 0.01, cache_write: 0.125, cache_write_1h: 0.2 },
+  'claude-haiku-4-5': { in: 1, out: 5, cache_read: 0.1, cache_write: 1.25, cache_write_1h: 2 },
+  'claude-3-5-haiku': { in: 0.8, out: 4, cache_read: 0.08, cache_write: 1, cache_write_1h: 1.6 },
 };
 
 export function loadRates(cwd: string): Record<string, Rate> {
@@ -45,10 +62,18 @@ export function rateFor(model: string | undefined, rates: Record<string, Rate>):
   return best ? rates[best] : null;
 }
 
-export function usd(tokens: { in: number; out: number; cache_read: number; cache_write: number }, rate: Rate | null): number | null {
+export function usd(
+  tokens: { in: number; out: number; cache_read: number; cache_write: number; cache_write_1h?: number },
+  rate: Rate | null,
+): number | null {
   if (!rate) return null;
+  const w1h = tokens.cache_write_1h ?? 0;
   const v =
-    (tokens.in * rate.in + tokens.out * rate.out + tokens.cache_read * rate.cache_read + tokens.cache_write * rate.cache_write) /
+    (tokens.in * rate.in +
+      tokens.out * rate.out +
+      tokens.cache_read * rate.cache_read +
+      (tokens.cache_write - w1h) * rate.cache_write +
+      w1h * (rate.cache_write_1h ?? rate.cache_write)) /
     1_000_000;
   return Math.round(v * 10000) / 10000;
 }

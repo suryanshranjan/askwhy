@@ -7,6 +7,7 @@ import { repoRoot, toRepoPath, tryGit } from '../git.js';
 import { notedCommits, readRecords } from '../notes.js';
 import { readPending } from '../pending.js';
 import type { Hunk, Record } from '../record.js';
+import { displayCommand } from '../proof.js';
 import { isAbsolute, resolve } from 'node:path';
 
 interface Target {
@@ -45,24 +46,29 @@ export function formatRecord(r: Record, path: string, line: number | null): stri
   const span = hunks.find((h) => line !== null && covers(h, line)) ?? hunks[0];
   const range = span?.new_range ? `${span.new_range[0]}-${span.new_range[1]}` : 'whole file';
   const agent = `${r.agent.name}${r.agent.model ? ` · ${r.agent.model}` : ''}`;
-  const proofAfter = r.proof.filter((p) => p.after_edit);
+  const proofAfter = r.proof.filter((p) => p.after_edit && p.kind !== 'other');
   const proofLine =
     proofAfter.length === 0
       ? r.proof.length
         ? 'nothing ran after the edit (earlier: ' + r.proof.map((p) => p.kind).join(', ') + ')'
         : 'nothing ran'
-      : proofAfter.map((p) => `${p.cmd.split(' ').slice(0, 4).join(' ')} · ${p.summary} · exit ${p.exit ?? '?'}`).join('; ');
+      : proofAfter.map((p) => `${displayCommand(p.cmd).slice(0, 60)} · ${p.summary} · exit ${p.exit ?? '?'}`).join('\n           ');
   const price = r.price
     ? `${r.price.usd === null ? 'unpriced model' : `$${r.price.usd.toFixed(2)}`} · ${Math.round((r.price.input_tokens + r.price.output_tokens + r.price.cache_read_tokens + r.price.cache_write_tokens) / 1000)}k tokens · ${r.price.turns} turn${r.price.turns === 1 ? '' : 's'}`
     : 'not recorded';
   const lines = [`${path}:${range}${r.commit ? `  (${r.commit.slice(0, 8)})` : '  (pending, not committed)'}`];
   if (r.why.source === 'none') lines.push('  why      no recorded intent');
   else {
-    lines.push(`  why      ${r.why.decision}${r.why.reason ? `: ${r.why.reason}` : ''}`);
+    lines.push(`  why      ${r.why.decision}`);
+    if (r.why.reason) lines.push(`  because  ${r.why.reason}`);
     for (const rej of r.why.rejected) lines.push(`  rejected ${rej.option}${rej.reason ? ` (${rej.reason})` : ''}`);
   }
-  if (r.prompt) lines.push(`  prompt   "${r.prompt.text.replace(/\s+/g, ' ').slice(0, 120)}" · ${agent}`);
-  else lines.push(`  prompt   (not captured) · ${agent}`);
+  if (r.prompt) {
+    const p = r.prompt.text.replace(/\s+/g, ' ');
+    lines.push(`  prompt   "${p.length > 110 ? p.slice(0, 107) + '...' : p}"`);
+    lines.push(`  agent    ${agent}`);
+  }
+  else lines.push(`  agent    ${agent} (prompt not captured)`);
   lines.push(`  proof    ${proofLine}`);
   lines.push(`  price    ${price}`);
   return lines.join('\n');

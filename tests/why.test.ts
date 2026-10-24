@@ -69,9 +69,9 @@ test('attach moves the record into a note on HEAD and git why finds it by line',
   assert.ok(blame.startsWith(sha));
   const out = formatRecord(recs[0], 'src/a.ts', 2);
   assert.match(out, /^src\/a\.ts:2-2  \(/);
-  assert.match(out, /why      replaced line2 with changed: test/);
+  assert.match(out, /why      replaced line2 with changed\n  because  test/);
   assert.match(out, /rejected leave it \(pointless\)/);
-  assert.match(out, /prompt   "change line2" · claude-code/);
+  assert.match(out, /prompt   "change line2"\n  agent    claude-code/);
   assert.match(out, /proof    nothing ran/);
 });
 

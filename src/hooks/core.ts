@@ -255,6 +255,8 @@ function onToolFailure(root: string, input: HookInput): void {
 function onStop(root: string, input: HookInput): void {
   const rec = loadTurn(root, input.session_id);
   if (!rec) return;
+  rec.ended_at = now();
+  if (input.transcript_path) rec.agent.transcript_path = input.transcript_path;
   if (input.last_assistant_message) {
     const why = parseWhyBlock(input.last_assistant_message);
     if (why) rec.why = why;

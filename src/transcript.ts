@@ -20,6 +20,7 @@ interface UsageLine {
       output_tokens?: number;
       cache_read_input_tokens?: number;
       cache_creation_input_tokens?: number;
+      cache_creation?: { ephemeral_5m_input_tokens?: number; ephemeral_1h_input_tokens?: number };
     };
   };
 }
@@ -89,11 +90,13 @@ export interface TurnUsage {
   model: string | undefined;
 }
 
-export function usageSince(transcriptPath: string, sinceIso: string | null, cwd: string): TurnUsage | null {
+export function usageSince(transcriptPath: string, sinceIso: string | null, cwd: string, untilIso: string | null = null): TurnUsage | null {
   if (!transcriptPath || !existsSync(transcriptPath)) return null;
   const since = sinceIso ? Date.parse(sinceIso) : 0;
+  const until = untilIso ? Date.parse(untilIso) : Infinity;
   const price = emptyPrice();
   let model: string | undefined;
+  let write1h = 0;
   const seen = new Set<string>(); // the same API response can appear twice in a transcript
   for (const line of readFileSync(transcriptPath, 'utf8').split('\n')) {
     if (!line.trim()) continue;
@@ -104,7 +107,7 @@ export function usageSince(transcriptPath: string, sinceIso: string | null, cwd:
       continue;
     }
     if (o.type !== 'assistant' || !o.message?.usage) continue;
-    if (o.timestamp && Date.parse(o.timestamp) < since) continue;
+    if (o.timestamp && (Date.parse(o.timestamp) < since || Date.parse(o.timestamp) > until)) continue;
     const key = o.message.id ?? line;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -113,12 +116,13 @@ export function usageSince(transcriptPath: string, sinceIso: string | null, cwd:
     price.output_tokens += u.output_tokens ?? 0;
     price.cache_read_tokens += u.cache_read_input_tokens ?? 0;
     price.cache_write_tokens += u.cache_creation_input_tokens ?? 0;
+    write1h += u.cache_creation?.ephemeral_1h_input_tokens ?? 0;
     price.turns += 1;
-    if (o.message.model) model = o.message.model;
+    if (o.message.model && o.message.model !== '<synthetic>') model = o.message.model;
   }
   if (price.turns === 0) return null;
   price.usd = usd(
-    { in: price.input_tokens, out: price.output_tokens, cache_read: price.cache_read_tokens, cache_write: price.cache_write_tokens },
+    { in: price.input_tokens, out: price.output_tokens, cache_read: price.cache_read_tokens, cache_write: price.cache_write_tokens, cache_write_1h: write1h },
     rateFor(model, loadRates(cwd)),
   );
   return { price, model };
