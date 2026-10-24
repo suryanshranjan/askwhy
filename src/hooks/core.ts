@@ -1,5 +1,5 @@
-// Claude Code hook handler. Invoked as `askwhy hook claude-code` with the
-// hook's JSON on stdin. Never throws out to Claude Code: a failure here must
+// Hook handler shared by Claude Code and Codex. Invoked as
+// `askwhy hook <claude-code|codex>` with the hook's JSON on stdin. Never throws out to Claude Code: a failure here must
 // not interrupt the user's session, so errors go to a log file and exit 0.
 
 import { existsSync, readFileSync, appendFileSync } from 'node:fs';
@@ -12,10 +12,15 @@ import { fileAtHead, repoRoot, stateDir, toRepoPath } from '../git.js';
 import { upsertPending } from '../pending.js';
 import { clearTurn, loadOrStartTurn, loadTurn, saveTurn } from '../turn.js';
 import { parseWhyBlock } from '../whyblock.js';
-import { usageSince } from '../transcript.js';
-import type { Hunk, Proof, Record } from '../record.js';
+import { usageSince, codexUsage } from '../transcript.js';
+import { CLAIM } from '../commands/receipt.js';
+import { locateChunk, parsePatch } from '../patch.js';
+import type { AgentName, Hunk, Proof, Record } from '../record.js';
 
-interface HookInput {
+export interface HookInput {
+  agent?: AgentName; // set by the dispatcher, not by the agent
+  model?: string; // codex sends this on every event
+  turn_id?: string; // codex
   session_id: string;
   transcript_path?: string;
   cwd?: string;
@@ -28,15 +33,20 @@ interface HookInput {
     old_string?: string;
     new_string?: string;
     content?: string;
-    command?: string;
+    command?: string | string[];
+    input?: string; // codex apply_patch may carry the patch here
     edits?: Array<{ old_string: string; new_string: string }>;
   };
-  tool_response?: {
-    stdout?: string;
-    stderr?: string;
-    interrupted?: boolean;
-    bashEditDiff?: { changedFiles?: string[] };
-  };
+  tool_response?:
+    | string
+    | {
+        stdout?: string;
+        stderr?: string;
+        output?: string;
+        exit_code?: number;
+        interrupted?: boolean;
+        bashEditDiff?: { changedFiles?: string[] };
+      };
   error?: string;
   last_assistant_message?: string;
   stop_hook_active?: boolean;
@@ -70,10 +80,41 @@ function absPath(cwd: string, p: string): string {
 }
 
 function agentOf(input: HookInput) {
-  return { name: 'claude-code' as const, session_id: input.session_id };
+  return { name: input.agent ?? ('claude-code' as const), session_id: input.session_id, model: input.model };
+}
+
+const SHELL_TOOLS = new Set(['Bash', 'shell', 'exec_command', 'local_shell', 'container.exec', 'unified_exec']);
+
+function commandText(input: HookInput): string {
+  const c = input.tool_input?.command;
+  if (Array.isArray(c)) {
+    // ["bash","-lc","npm test"] -> "npm test"
+    const i = c.findIndex((x) => x === '-lc' || x === '-c' || x === '/c' || x === '-Command');
+    return (i >= 0 ? c.slice(i + 1) : c).join(' ');
+  }
+  return c ?? '';
+}
+
+function responseText(input: HookInput): { out: string; exit: number | null } {
+  const r = input.tool_response;
+  if (r === undefined) return { out: '', exit: null };
+  if (typeof r === 'string') {
+    const m = /(?:Exit code|exit_code|Process exited with code)\W+(\d+)/i.exec(r);
+    return { out: r, exit: m ? Number(m[1]) : null };
+  }
+  const out = [r.stdout, r.stderr, r.output].filter(Boolean).join('\n');
+  return { out, exit: typeof r.exit_code === 'number' ? r.exit_code : null };
 }
 
 export function handleClaudeCode(input: HookInput): void {
+  handleHook({ ...input, agent: input.agent ?? 'claude-code' });
+}
+
+export function handleCodex(input: HookInput): void {
+  handleHook({ ...input, agent: 'codex' });
+}
+
+export function handleHook(input: HookInput): void {
   const cwd = input.cwd ?? process.cwd();
   const root = repoRoot(cwd);
   if (!root) return; // not a git repo: nothing to record
@@ -110,8 +151,38 @@ function onPrompt(root: string, input: HookInput): void {
 
 function onPostToolUse(root: string, input: HookInput): void {
   const tool = input.tool_name ?? '';
-  if (EDIT_TOOLS.has(tool)) return onEdit(root, input, tool);
-  if (tool === 'Bash') return onBash(root, input, 0);
+  const cmd = commandText(input);
+  const patch = input.tool_input?.input ?? cmd;
+  if (tool === 'apply_patch' || patch.startsWith('*** Begin Patch')) return onPatch(root, input, patch);
+  if (EDIT_TOOLS.has(tool) && input.tool_input?.file_path) return onEdit(root, input, tool);
+  if (SHELL_TOOLS.has(tool)) {
+    const { exit } = responseText(input);
+    // Claude Code only fires PostToolUse for successful Bash; failures come via PostToolUseFailure
+    return onBash(root, input, exit ?? (input.agent === 'claude-code' ? 0 : null));
+  }
+}
+
+function onPatch(root: string, input: HookInput, patch: string): void {
+  const rec = loadOrStartTurn(root, agentOf(input));
+  const ts = now();
+  for (const f of parsePatch(patch)) {
+    const path = toRepoPath(root, absPath(root, f.moveTo ?? f.path));
+    if (f.op === 'delete') {
+      rec.hunks.push({ path, old_range: null, new_range: null, content_hash: sha256(''), tool: 'apply_patch', ts });
+      continue;
+    }
+    const after = readFile(absPath(root, f.moveTo ?? f.path));
+    if (after === null) continue;
+    let located = 0;
+    for (const chunk of f.chunks) {
+      const r = locateChunk(after, chunk);
+      if (!r) continue;
+      located++;
+      rec.hunks.push({ path, ...r, tool: 'apply_patch', ts });
+    }
+    if (located === 0) rec.hunks.push({ path, ...wholeFile(after, fileAtHead(root, path)), tool: 'apply_patch', ts });
+  }
+  saveTurn(root, rec);
 }
 
 function onEdit(root: string, input: HookInput, tool: string): void {
@@ -143,11 +214,11 @@ function onEdit(root: string, input: HookInput, tool: string): void {
 }
 
 function onBash(root: string, input: HookInput, exit: number | null): void {
-  const cmd = input.tool_input?.command ?? '';
+  const cmd = commandText(input);
   if (!cmd) return;
   const rec = loadOrStartTurn(root, agentOf(input));
   const ts = now();
-  const out = `${input.tool_response?.stdout ?? ''}\n${input.tool_response?.stderr ?? ''}`;
+  const { out } = responseText(input);
   const proof: Proof = {
     cmd: redact(cmd).slice(0, 500),
     exit,
@@ -159,7 +230,8 @@ function onBash(root: string, input: HookInput, exit: number | null): void {
   rec.proof.push(proof);
 
   // Files changed by the command itself (sed, scripts): whole-file hunks.
-  for (const changed of input.tool_response?.bashEditDiff?.changedFiles ?? []) {
+  const resp = typeof input.tool_response === 'object' ? input.tool_response : undefined;
+  for (const changed of resp?.bashEditDiff?.changedFiles ?? []) {
     const abs = absPath(root, changed);
     const after = readFile(abs);
     if (after === null) continue;
@@ -170,7 +242,7 @@ function onBash(root: string, input: HookInput, exit: number | null): void {
 }
 
 function onToolFailure(root: string, input: HookInput): void {
-  if (input.tool_name !== 'Bash') return;
+  if (!SHELL_TOOLS.has(input.tool_name ?? '')) return;
   const m = /Exit code (\d+)/.exec(input.error ?? '');
   const exit = m ? Number(m[1]) : null;
   const failed: HookInput = {
@@ -186,9 +258,14 @@ function onStop(root: string, input: HookInput): void {
   if (input.last_assistant_message) {
     const why = parseWhyBlock(input.last_assistant_message);
     if (why) rec.why = why;
+    const claim = CLAIM.exec(input.last_assistant_message.replace(/```why[\s\S]*?```/g, ''));
+    if (claim) rec.claim = claim[0];
   }
   if (input.transcript_path) {
-    const usage = usageSince(input.transcript_path, rec.prompt?.ts ?? null, root);
+    const usage =
+      input.agent === 'codex'
+        ? codexUsage(input.transcript_path, input.turn_id ?? null, rec.prompt?.ts ?? null, input.model, root)
+        : usageSince(input.transcript_path, rec.prompt?.ts ?? null, root);
     if (usage) {
       rec.price = usage.price;
       if (usage.model) {

@@ -6,7 +6,7 @@ import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { handleClaudeCode } from '../src/hooks/claude-code.js';
+import { handleClaudeCode } from '../src/hooks/core.js';
 import { attach } from '../src/commands/attach.js';
 import { readRecords } from '../src/notes.js';
 import { readPending } from '../src/pending.js';

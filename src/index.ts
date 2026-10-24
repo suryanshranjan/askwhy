@@ -1,8 +1,11 @@
-import { handleClaudeCode, readStdinJson } from './hooks/claude-code.js';
+import { handleClaudeCode, handleCodex, readStdinJson } from './hooks/core.js';
 import { init } from './commands/init.js';
 import { doctor } from './commands/doctor.js';
 import { attach } from './commands/attach.js';
 import { why } from './commands/why.js';
+import { receipt } from './commands/receipt.js';
+import { price } from './commands/price.js';
+import { exportTrace } from './commands/export.js';
 import { readPending } from './pending.js';
 import { repoRoot } from './git.js';
 
@@ -13,11 +16,12 @@ const USAGE = `askwhy ${VERSION}
 Usage:
   askwhy init              detect agents, install hooks, notes ref, git alias
   git why <path>[:<line>]  intent for the hunk covering a line
-  askwhy receipt [sha]     proof for a commit or the pending turn
-  askwhy price [--since]   cost per change, per session, per agent
+  askwhy receipt [sha|pending]  what was verified after the edit
+  askwhy price [--since 7d] [--by commit|agent|session|file]
+                           cost per change and $ per line landed
   askwhy pending           records waiting for a commit
   askwhy attach            attach pending records to HEAD (post-commit)
-  askwhy export            Agent Trace JSON for a range
+  askwhy export [--since]  Agent Trace JSON (with intent, proof, price)
   askwhy doctor            hooks installed? notes ref ok? agents detected?
   askwhy hook <agent>      hook entry point (reads JSON on stdin)
 `;
@@ -67,6 +71,7 @@ export async function run(argv: string[]): Promise<number> {
     case 'hook': {
       const input = readStdinJson();
       if (input && rest[0] === 'claude-code') handleClaudeCode(input);
+      if (input && rest[0] === 'codex') handleCodex(input);
       return 0; // never fail the agent's session
     }
     case 'init':
@@ -79,6 +84,12 @@ export async function run(argv: string[]): Promise<number> {
       return attach(cwd, rest.includes('--quiet'));
     case 'why':
       return why(cwd, rest);
+    case 'receipt':
+      return receipt(cwd, rest);
+    case 'price':
+      return price(cwd, rest);
+    case 'export':
+      return exportTrace(cwd, rest);
     default:
       process.stderr.write(`askwhy: '${command}' is not implemented yet\n\n${USAGE}`);
       return 2;

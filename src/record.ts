@@ -81,6 +81,7 @@ export interface Record {
   proof: Proof[];
   price: Price | null;
   trace: Trace;
+  claim?: string; // verification claim found in the agent's final message, e.g. "tests pass"
   commit?: string; // set once attached to a commit
 }
 
