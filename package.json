@@ -1,0 +1,38 @@
+{
+  "name": "gitwhy",
+  "version": "0.0.1",
+  "description": "Per-hunk provenance for agent-written code: why a line exists, what was verified, and what it cost.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "gitwhy": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "assets"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "test": "node --test --import tsx tests/**/*.test.ts",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "git",
+    "provenance",
+    "claude-code",
+    "codex",
+    "coding-agents",
+    "agent-trace",
+    "blame"
+  ],
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
