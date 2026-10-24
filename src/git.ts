@@ -1,7 +1,7 @@
 // Thin git helpers. Everything shells out to the user's git; no library.
 
 import { execFileSync, type ExecFileSyncOptions } from 'node:child_process';
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, realpathSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
 
 export const NOTES_REF = 'refs/notes/why';
@@ -41,8 +41,18 @@ export function stateDir(cwd: string): string | null {
   return state;
 }
 
+// Windows can hand us the same directory as a short (DEVANS~1) and a long
+// path; resolve both through the filesystem before comparing.
+function canonical(p: string): string {
+  try {
+    return realpathSync.native(p);
+  } catch {
+    return resolve(p);
+  }
+}
+
 export function toRepoPath(root: string, absPath: string): string {
-  return relative(root, absPath).split(sep).join('/');
+  return relative(canonical(root), canonical(absPath)).split(sep).join('/');
 }
 
 export function headSha(cwd: string): string | null {

@@ -40,6 +40,42 @@ function countLines(text: string): number {
   return n;
 }
 
+// PostToolUse runs after the edit, so we only have the post-edit content.
+// Locate newString in it (must be unique) and derive both ranges from there.
+export function mapEditAfter(after: string, oldString: string, newString: string): Omit<MappedEdit, 'after'> {
+  if (newString !== '') {
+    const first = after.indexOf(newString);
+    const unique = first !== -1 && after.indexOf(newString, first + 1) === -1;
+    if (unique) {
+      const startLine = lineOfOffset(after, first);
+      const oldLines = countLines(oldString);
+      const newLines = countLines(newString);
+      return {
+        old_range: oldLines > 0 ? [startLine, startLine + oldLines - 1] : null,
+        new_range: newLines > 0 ? [startLine, startLine + newLines - 1] : null,
+        content_hash: sha256(newString),
+      };
+    }
+  }
+  // Deletion or ambiguous: whole file, nothing fabricated.
+  const n = countLines(after);
+  return {
+    old_range: null,
+    new_range: n > 0 ? [1, n] : null,
+    content_hash: sha256(after),
+  };
+}
+
+export function wholeFile(after: string, before: string | null): Omit<MappedEdit, 'after'> {
+  const n = countLines(after);
+  const o = before === null ? 0 : countLines(before);
+  return {
+    old_range: o > 0 ? [1, o] : null,
+    new_range: n > 0 ? [1, n] : null,
+    content_hash: sha256(after),
+  };
+}
+
 export function mapEdit(input: EditInput): MappedEdit {
   const { before, oldString, newString } = input;
 
