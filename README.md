@@ -1,6 +1,8 @@
-# gitwhy
+# askwhy
 
-Per-hunk provenance for agent-written code. For every change a coding agent makes, gitwhy keeps five facts next to the code, in git:
+Ask why any line exists. Provenance for agent-written code, for Git.
+
+Per-hunk provenance for agent-written code. For every change a coding agent makes, askwhy keeps five facts next to the code, in git:
 
 - **why**: the decision and the reason
 - **rejected**: the alternatives the agent considered and dropped
@@ -27,7 +29,7 @@ Pre-alpha. Nothing here works yet. See `docs/PLAN.md`.
 ## Install (target)
 
 ```
-npx gitwhy init
+npx askwhy init
 ```
 
 Detects Claude Code and Codex, installs their hooks, adds a `post-commit` git hook, sets up `refs/notes/why`, and adds the `git why` alias.
@@ -35,13 +37,13 @@ Detects Claude Code and Codex, installs their hooks, adds a `post-commit` git ho
 ## Commands (target)
 
 ```
-gitwhy init              detect agents, install hooks, notes ref, git alias
+askwhy init              detect agents, install hooks, notes ref, git alias
 git why <path>[:<line>]  intent for the hunk covering a line
-gitwhy receipt [sha]     proof for a commit or the pending turn
-gitwhy price [--since]   cost per change, per session, per agent
-gitwhy pending           records waiting for a commit
-gitwhy export            Agent Trace JSON for a range
-gitwhy doctor            hooks installed? notes ref ok? agents detected?
+askwhy receipt [sha]     proof for a commit or the pending turn
+askwhy price [--since]   cost per change, per session, per agent
+askwhy pending           records waiting for a commit
+askwhy export            Agent Trace JSON for a range
+askwhy doctor            hooks installed? notes ref ok? agents detected?
 ```
 
 ## License

@@ -1,6 +1,6 @@
-# gitwhy v1 plan
+# askwhy v1 plan
 
-Approved 2026-10-24. Working name `gitwhy` (npm `why` was taken). Three weeks, Claude Code + Codex only.
+Approved 2026-10-24. Working name `askwhy` (`why` and `gitwhy` were taken; `gitwhy` also clashes with the Git trademark policy, which forbids "git" as a syllable in product marks). Three weeks, Claude Code + Codex only.
 
 ## Context
 
@@ -47,7 +47,7 @@ Claude Code (primary):
 - `PostToolUse` on `Edit|Write|MultiEdit|NotebookEdit`: path, old/new string → hunk ranges + content hash. For Bash-driven edits, diff the working tree before/after `Bash` (fallback).
 - `PostToolUse` on `Bash`: command, exit code, stdout tail → proof candidates, classified.
 - `Stop`: close the turn. Read `transcript_path` for usage fields → price. Parse the `why:` block the agent was asked to emit. Write the pending record.
-- git `post-commit` (installed by `gitwhy init`): attach pending records to the commit as a note; re-map hunks to the committed diff.
+- git `post-commit` (installed by `askwhy init`): attach pending records to the commit as a note; re-map hunks to the committed diff.
 
 Codex (secondary): `UserPromptSubmit`, `PostToolUse`. Edits arrive as `apply_patch` V4A patch strings → parse to hunks. Usage from `codex exec --json` `turn.completed.usage`; price from a local model price table.
 
@@ -55,38 +55,38 @@ Cursor and Gemini CLI: v2.
 
 ## The "why" without an LLM in the loop
 
-`gitwhy init` installs a short instruction block (Claude Code: a skill; Codex: AGENTS.md section) asking the agent, at the end of any turn that edited files, to emit a fenced `why:` block (decision, reason, rejected alternatives). The Stop hook parses it. If absent, `why.source = none` and `git why` says "no recorded intent". Strict mode (opt-in) blocks the Stop until the block is present. gitwhy itself never calls a model.
+`askwhy init` installs a short instruction block (Claude Code: a skill; Codex: AGENTS.md section) asking the agent, at the end of any turn that edited files, to emit a fenced `why:` block (decision, reason, rejected alternatives). The Stop hook parses it. If absent, `why.source = none` and `git why` says "no recorded intent". Strict mode (opt-in) blocks the Stop until the block is present. askwhy itself never calls a model.
 
 ## Storage and git behaviour
 
-- Notes on `refs/notes/why`. `gitwhy init` sets `notes.rewriteRef` so rebase and amend carry notes, and installs `post-commit`.
-- Pending (uncommitted) records in `.git/why/pending.jsonl`; attached on commit; `gitwhy pending` lists orphans.
+- Notes on `refs/notes/why`. `askwhy init` sets `notes.rewriteRef` so rebase and amend carry notes, and installs `post-commit`.
+- Pending (uncommitted) records in `.git/why/pending.jsonl`; attached on commit; `askwhy pending` lists orphans.
 - Squash-merge on hosted forges: documented limitation in v1; the hosted tier re-attaches by content hash.
-- Redaction: prompts pass a secret scanner (keys, tokens, `.env` values) before storage; `gitwhy config redact` for custom patterns.
+- Redaction: prompts pass a secret scanner (keys, tokens, `.env` values) before storage; `askwhy config redact` for custom patterns.
 
 ## CLI
 
 ```
-gitwhy init              detect agents, install hooks, notes ref, git alias
+askwhy init              detect agents, install hooks, notes ref, git alias
 git why <path>[:<line>]  intent for the hunk covering a line (default: last change to file)
-gitwhy receipt [sha]     proof for a commit or the pending turn
-gitwhy price [--since]   cost per change, per session, per agent; $/merged-line
-gitwhy pending           records waiting for a commit
-gitwhy export            Agent Trace JSON for a range
-gitwhy doctor            hooks installed? notes ref ok? agents detected?
+askwhy receipt [sha]     proof for a commit or the pending turn
+askwhy price [--since]   cost per change, per session, per agent; $/merged-line
+askwhy pending           records waiting for a commit
+askwhy export            Agent Trace JSON for a range
+askwhy doctor            hooks installed? notes ref ok? agents detected?
 ```
 
 Plain text output, `--json` everywhere. No daemon. No network.
 
 ## Stack
 
-TypeScript, Node ≥ 20, one npm package (`npx gitwhy init`). Zero runtime dependencies; hooks are JSON-over-stdin scripts. A Rust/Go binary is a v2 option if install friction shows.
+TypeScript, Node ≥ 20, one npm package (`npx askwhy init`). Zero runtime dependencies; hooks are JSON-over-stdin scripts. A Rust/Go binary is a v2 option if install friction shows.
 
 ## Weeks
 
-1. Record schema; Claude Code hooks (prompt, edit, bash, stop); pending store; `gitwhy doctor`; `gitwhy init` for Claude Code. Dogfood on BarterNow daily.
-2. Notes writer + post-commit; `git why`; `gitwhy receipt`; proof classifier; redaction; the `why:` instruction block and parser.
-3. `gitwhy price`; Codex capture; `gitwhy export`; README with the three screenshots; launch.
+1. Record schema; Claude Code hooks (prompt, edit, bash, stop); pending store; `askwhy doctor`; `askwhy init` for Claude Code. Dogfood on BarterNow daily.
+2. Notes writer + post-commit; `git why`; `askwhy receipt`; proof classifier; redaction; the `why:` instruction block and parser.
+3. `askwhy price`; Codex capture; `askwhy export`; README with the three screenshots; launch.
 
 ## Out of v1
 
@@ -97,7 +97,7 @@ Hosted/GitHub rendering, Cursor and Gemini capture, cross-agent session handoff,
 - Unit: hunk mapping from `old_string`/`new_string` to line ranges on real diffs; V4A patch parser; proof classifier against ~50 real commands; redaction fixtures.
 - Integration: run Claude Code headless (`claude -p --output-format json --bare`) on a fixture repo with hooks installed. Assert one record per edited file; proof attached when a test ran after the edit; `why.source = none` when no block emitted; note present after commit; `git why` prints it.
 - Dogfood: installed on BarterNow for all three weeks. Weekly: `git why` answers a real "why is this here" question in under 10 seconds; the ledger survives a compaction and a `/clear`.
-- Launch gate: three true screenshots (a `git why` answer, a receipt that caught "tests pass" with no run, a `gitwhy price` table); install to first `git why` under 2 minutes on a clean machine.
+- Launch gate: three true screenshots (a `git why` answer, a receipt that caught "tests pass" with no run, a `askwhy price` table); install to first `git why` under 2 minutes on a clean machine.
 
 ## Launch
 
@@ -105,7 +105,7 @@ X and Reddit with the three screenshots; README leads with `git why`. Target the
 
 ## Decisions
 
-- Name: `gitwhy` (npm free as of 2026-10-24). GitHub handle to confirm.
+- Name: `askwhy` (npm free as of 2026-10-24). GitHub handle to confirm.
 - Language: TypeScript.
 - License: Apache-2.0 for the CLI; hosted tier closed.
 - Repo public from the first commit.

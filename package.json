@@ -1,11 +1,11 @@
 {
-  "name": "gitwhy",
+  "name": "askwhy",
   "version": "0.0.1",
   "description": "Per-hunk provenance for agent-written code: why a line exists, what was verified, and what it cost.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
-    "gitwhy": "./dist/cli.js"
+    "askwhy": "./dist/cli.js"
   },
   "files": [
     "dist",
