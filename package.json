@@ -1,6 +1,6 @@
 {
   "name": "askwhy",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "git blame tells you who. git why tells you why. Per-hunk provenance for agent-written code: decision, rejected alternatives, prompt, proof, price.",
   "license": "Apache-2.0",
   "type": "module",
