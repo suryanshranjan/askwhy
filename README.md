@@ -3,6 +3,7 @@
 **`git blame` tells you who. `git why` tells you why.**
 
 [![ci](https://github.com/suryanshranjan/askwhy/actions/workflows/ci.yml/badge.svg)](https://github.com/suryanshranjan/askwhy/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/askwhy)](https://www.npmjs.com/package/askwhy)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 ![agents](https://img.shields.io/badge/agents-Claude%20Code%20%7C%20Codex-8A2BE2)
 ![local only](https://img.shields.io/badge/runs-100%25%20local-2ea44f)
@@ -20,7 +21,7 @@ askwhy keeps that context next to the code, in git. For every change an agent ma
 - **price**: what the change cost
 
 ```
-npx askwhy init        # once per repo (npm package coming soon; see Install)
+npx askwhy init        # once per repo
 # ...work with Claude Code or Codex as usual, commit as usual...
 git why src/payments/retry.ts:42
 ```
@@ -56,13 +57,12 @@ Local only. No daemon, no network, no model calls. Records are deterministic whe
 
 ## Install
 
-Not on npm yet. From a checkout:
-
 ```
-npm install && npm run build
 cd /path/to/your/repo
-node /path/to/askwhy/dist/cli.js init            # or --local to keep config out of git
+npx askwhy init              # or: npm i -g askwhy && askwhy init  (hooks start faster)
 ```
+
+`--local` keeps askwhy's config out of git (`.claude/settings.local.json`, `CLAUDE.local.md`), handy for trying it on a repo you share. Requires Node 20+ and git.
 
 Codex: trust the new hooks once with `/hooks` inside Codex.
 
@@ -85,7 +85,7 @@ Pre-alpha.
 
 - Claude Code: verified end to end on a real repo (capture, commit, `git why`, `receipt`, `price`, `export`).
 - Codex: implemented from the documented hook format and the real rollout log format; not yet verified against a live Codex session.
-- Not yet: Cursor and Gemini CLI, hosted PR view, npm package.
+- Not yet: Cursor and Gemini CLI, hosted PR view.
 
 ## License
 
