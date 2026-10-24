@@ -1,6 +1,8 @@
 import { handleClaudeCode, readStdinJson } from './hooks/claude-code.js';
 import { init } from './commands/init.js';
 import { doctor } from './commands/doctor.js';
+import { attach } from './commands/attach.js';
+import { why } from './commands/why.js';
 import { readPending } from './pending.js';
 import { repoRoot } from './git.js';
 
@@ -73,6 +75,10 @@ export async function run(argv: string[]): Promise<number> {
       return doctor(cwd);
     case 'pending':
       return pending(cwd, json);
+    case 'attach':
+      return attach(cwd, rest.includes('--quiet'));
+    case 'why':
+      return why(cwd, rest);
     default:
       process.stderr.write(`askwhy: '${command}' is not implemented yet\n\n${USAGE}`);
       return 2;

@@ -10,7 +10,7 @@ export function git(args: string[], cwd: string, opts: ExecFileSyncOptions = {})
   return execFileSync('git', args, {
     cwd,
     encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
+    stdio: [opts.input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'],
     ...opts,
   }) as string;
 }
