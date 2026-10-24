@@ -9,7 +9,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync } from 'n
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { NOTES_REF, git, gitDir, repoRoot, tryGit } from '../git.js';
+import { NOTES_REF, git, gitDir, hooksDir, repoRoot } from '../git.js';
 
 const EVENTS = ['UserPromptSubmit', 'PostToolUse', 'PostToolUseFailure', 'Stop'] as const;
 
@@ -84,11 +84,10 @@ export function installGit(root: string): string[] {
   git(['config', '--add', 'notes.displayRef', NOTES_REF], root);
   done.push(`notes: ${NOTES_REF} shown in git log, carried on rebase/amend`);
 
-  const dir = gitDir(root);
+  const dir = hooksDir(root);
   if (dir) {
-    const hooksDir = join(dir, 'hooks');
-    if (!existsSync(hooksDir)) mkdirSync(hooksDir, { recursive: true });
-    const hook = join(hooksDir, 'post-commit');
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    const hook = join(dir, 'post-commit');
     const line = `${base} attach --quiet >/dev/null 2>&1 || true`;
     const marker = '# askwhy';
     let body = existsSync(hook) ? readFileSync(hook, 'utf8') : '#!/bin/sh\n';

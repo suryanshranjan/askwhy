@@ -2,7 +2,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { NOTES_REF, gitDir, repoRoot, tryGit } from '../git.js';
+import { NOTES_REF, hooksDir, repoRoot, tryGit } from '../git.js';
 import { readPending } from '../pending.js';
 
 export function doctor(cwd: string): number {
@@ -27,8 +27,8 @@ export function doctor(cwd: string): number {
   checks.push([tryGit(['config', '--get', 'alias.why'], root) !== null, 'git alias `git why`']);
   checks.push([tryGit(['config', '--get', 'notes.rewriteRef'], root) === NOTES_REF, `notes.rewriteRef = ${NOTES_REF}`]);
 
-  const dir = gitDir(root);
-  const postCommit = dir ? join(dir, 'hooks', 'post-commit') : '';
+  const dir = hooksDir(root);
+  const postCommit = dir ? join(dir, 'post-commit') : '';
   checks.push([!!postCommit && existsSync(postCommit) && readFileSync(postCommit, 'utf8').includes('askwhy'), 'post-commit hook attaches records']);
 
   const hasBlock = ['CLAUDE.md', 'CLAUDE.local.md'].some((f) => {

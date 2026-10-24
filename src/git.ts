@@ -32,6 +32,13 @@ export function gitDir(cwd: string): string | null {
   return dir ? resolve(cwd, dir) : null;
 }
 
+// The hooks directory git will actually run from: honours core.hooksPath and
+// worktrees (which share the main repo's hooks).
+export function hooksDir(cwd: string): string | null {
+  const p = tryGit(['rev-parse', '--git-path', 'hooks'], cwd);
+  return p ? resolve(cwd, p) : null;
+}
+
 // Where pending (uncommitted) records live: <gitdir>/why/
 export function stateDir(cwd: string): string | null {
   const dir = gitDir(cwd);
