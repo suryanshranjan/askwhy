@@ -111,6 +111,7 @@ export function installGit(root: string): string[] {
 export function installAgentBlock(root: string, local = false, name?: string): string {
   const file = join(root, name ?? (local ? 'CLAUDE.local.md' : 'CLAUDE.md'));
   const existing = existsSync(file) ? readFileSync(file, 'utf8') : '';
+  if (local && !name) excludeLocally(root, 'CLAUDE.local.md');
   if (existing.includes('## askwhy')) return `${file} already has the askwhy section`;
   writeFileSync(file, existing.replace(/\s*$/, existing ? '\n\n' : '') + AGENT_BLOCK, 'utf8');
   return `${file}: added the askwhy section`;
