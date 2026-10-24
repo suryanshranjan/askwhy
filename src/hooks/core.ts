@@ -12,7 +12,7 @@ import { fileAtHead, repoRoot, stateDir, toRepoPath } from '../git.js';
 import { upsertPending } from '../pending.js';
 import { clearTurn, loadOrStartTurn, loadTurn, saveTurn } from '../turn.js';
 import { parseWhyBlock } from '../whyblock.js';
-import { usageSince, codexUsage } from '../transcript.js';
+import { usageSince, codexUsage, codexExits } from '../transcript.js';
 import { CLAIM } from '../commands/receipt.js';
 import { locateChunk, parsePatch } from '../patch.js';
 import type { AgentName, Hunk, Proof, Record } from '../record.js';
@@ -263,6 +263,7 @@ function onStop(root: string, input: HookInput): void {
     const claim = CLAIM.exec(input.last_assistant_message.replace(/```why[\s\S]*?```/g, ''));
     if (claim) rec.claim = claim[0];
   }
+  if (input.transcript_path && input.agent === 'codex') fillCodexExits(rec, input.transcript_path, input.turn_id ?? null);
   if (input.transcript_path) {
     const usage =
       input.agent === 'codex'
@@ -283,6 +284,20 @@ function onStop(root: string, input: HookInput): void {
     // keep the prompt around: a later edit in the same turn (after a stop
     // hook continuation) still belongs to it
     saveTurn(root, rec);
+  }
+}
+
+// Codex's PostToolUse payload has no exit code; take it from the rollout,
+// matching commands in order.
+function fillCodexExits(rec: Record, transcriptPath: string, turnId: string | null): void {
+  const known = codexExits(transcriptPath, turnId);
+  let from = 0;
+  for (const p of rec.proof) {
+    if (p.exit !== null) continue;
+    const i = known.findIndex((k, j) => j >= from && redact(k.cmd).slice(0, 500) === p.cmd);
+    if (i < 0) continue;
+    p.exit = known[i].exit;
+    from = i + 1;
   }
 }
 

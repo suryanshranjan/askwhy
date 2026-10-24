@@ -127,3 +127,75 @@ export function usageSince(transcriptPath: string, sinceIso: string | null, cwd:
   );
   return { price, model };
 }
+
+// Codex hook payloads carry a command's output but not its exit code. The
+// rollout log has both: the call (`exec_command({cmd: "..."})` inside a
+// custom `exec` tool, or a plain function call) and its output, whose JSON
+// carries `exit_code`. Calls and outputs share a call_id; a script may run
+// several commands, paired in order. Returns the turn's commands in order.
+export function codexExits(transcriptPath: string, turnId: string | null): { cmd: string; exit: number }[] {
+  if (!transcriptPath || !existsSync(transcriptPath)) return [];
+  const cmds = new Map<string, string[]>();
+  const exits = new Map<string, number[]>();
+  const order: string[] = [];
+  for (const line of readFileSync(transcriptPath, 'utf8').split('\n')) {
+    if (!line.includes('call')) continue;
+    let o: { type?: string; payload?: CodexItem };
+    try {
+      o = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    const p = o.payload;
+    if (o.type !== 'response_item' || !p?.call_id) continue;
+    const tid = p.internal_chat_message_metadata_passthrough?.turn_id;
+    if (turnId && tid && tid !== turnId) continue;
+    if (p.type === 'custom_tool_call' || p.type === 'function_call') {
+      const found = callCommands(p.input ?? p.arguments ?? '');
+      if (found.length) {
+        cmds.set(p.call_id, found);
+        order.push(p.call_id);
+      }
+    } else if (p.type === 'custom_tool_call_output' || p.type === 'function_call_output') {
+      const text = typeof p.output === 'string' ? p.output : JSON.stringify(p.output ?? '');
+      exits.set(p.call_id, [...text.matchAll(/\\*"exit_code\\*":\s*(-?\d+)/g)].map((m) => Number(m[1])));
+    }
+  }
+  const out: { cmd: string; exit: number }[] = [];
+  for (const id of order) {
+    const c = cmds.get(id) ?? [];
+    const e = exits.get(id) ?? [];
+    for (let i = 0; i < c.length && i < e.length; i++) out.push({ cmd: c[i], exit: e[i] });
+  }
+  return out;
+}
+
+interface CodexItem {
+  type?: string;
+  call_id?: string;
+  input?: string;
+  arguments?: string;
+  output?: unknown;
+  internal_chat_message_metadata_passthrough?: { turn_id?: string };
+}
+
+function callCommands(src: string): string[] {
+  const found: string[] = [];
+  // JSON arguments of a plain function call: {"cmd": "..."} or {"command": [...]}
+  try {
+    const a = JSON.parse(src) as { cmd?: unknown; command?: unknown };
+    const c = a.cmd ?? a.command;
+    if (typeof c === 'string') return [c];
+    if (Array.isArray(c)) return [String(c[c.length - 1])];
+  } catch {
+    // not JSON: a code-mode script
+  }
+  for (const m of src.matchAll(/exec_command\(\{\s*"?cmd"?\s*:\s*("(?:[^"\\]|\\.)*")/g)) {
+    try {
+      found.push(JSON.parse(m[1]) as string);
+    } catch {
+      // unusual escape; skip
+    }
+  }
+  return found;
+}
