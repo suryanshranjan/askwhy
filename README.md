@@ -84,7 +84,7 @@ askwhy doctor                        is this repo wired up?
 Pre-alpha.
 
 - Claude Code: verified end to end on a real repo (capture, commit, `git why`, `receipt`, `price`, `export`).
-- Codex: implemented from the documented hook format and the real rollout log format; not yet verified against a live Codex session.
+- Codex: verified end to end against a live Codex CLI 0.160 session (capture, exit codes from the rollout log, commit, `git why`, `receipt`). OpenAI models are not in the built-in price table yet; add their rates to `.git/why/prices.json` to price Codex turns.
 - Not yet: Cursor and Gemini CLI, hosted PR view.
 
 ## License
