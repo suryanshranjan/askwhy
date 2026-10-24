@@ -13,16 +13,16 @@ export function doctor(cwd: string): number {
   }
   const checks: Array<[boolean, string]> = [];
 
-  const settingsFile = join(root, '.claude', 'settings.json');
-  let hooks = false;
-  if (existsSync(settingsFile)) {
+  const settingsFiles = ['settings.json', 'settings.local.json'].map((f) => join(root, '.claude', f));
+  const hooked = settingsFiles.filter((file) => {
+    if (!existsSync(file)) return false;
     try {
-      hooks = JSON.stringify(JSON.parse(readFileSync(settingsFile, 'utf8'))).includes('hook claude-code');
+      return JSON.stringify(JSON.parse(readFileSync(file, 'utf8'))).includes('hook claude-code');
     } catch {
-      hooks = false;
+      return false;
     }
-  }
-  checks.push([hooks, `Claude Code hooks in ${settingsFile}`]);
+  });
+  checks.push([hooked.length > 0, `Claude Code hooks in ${hooked[0] ?? settingsFiles[0]}`]);
 
   checks.push([tryGit(['config', '--get', 'alias.why'], root) !== null, 'git alias `git why`']);
   checks.push([tryGit(['config', '--get', 'notes.rewriteRef'], root) === NOTES_REF, `notes.rewriteRef = ${NOTES_REF}`]);
@@ -31,8 +31,11 @@ export function doctor(cwd: string): number {
   const postCommit = dir ? join(dir, 'hooks', 'post-commit') : '';
   checks.push([!!postCommit && existsSync(postCommit) && readFileSync(postCommit, 'utf8').includes('askwhy'), 'post-commit hook attaches records']);
 
-  const claudeMd = join(root, 'CLAUDE.md');
-  checks.push([existsSync(claudeMd) && readFileSync(claudeMd, 'utf8').includes('## askwhy'), 'CLAUDE.md asks the agent for a `why` block']);
+  const hasBlock = ['CLAUDE.md', 'CLAUDE.local.md'].some((f) => {
+    const p = join(root, f);
+    return existsSync(p) && readFileSync(p, 'utf8').includes('## askwhy');
+  });
+  checks.push([hasBlock, 'CLAUDE.md or CLAUDE.local.md asks the agent for a `why` block']);
 
   const notes = tryGit(['notes', `--ref=${NOTES_REF}`, 'list'], root);
   const noteCount = notes ? notes.split('\n').filter(Boolean).length : 0;

@@ -70,7 +70,7 @@ export async function run(argv: string[]): Promise<number> {
       return 0; // never fail the agent's session
     }
     case 'init':
-      return init(cwd);
+      return init(cwd, rest);
     case 'doctor':
       return doctor(cwd);
     case 'pending':
