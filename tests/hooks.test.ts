@@ -3,15 +3,15 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { handleClaudeCode } from '../src/hooks/core.js';
 import { readPending } from '../src/pending.js';
+import { tempDir } from './tmp.js';
 
 function repo(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'askwhy-'));
+  const dir = tempDir('askwhy-');
   execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: dir });
   execFileSync('git', ['config', 'user.email', 't@example.com'], { cwd: dir });
   execFileSync('git', ['config', 'user.name', 'T'], { cwd: dir });

@@ -1,9 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { codexExits } from '../src/transcript.js';
+import { tempDir } from './tmp.js';
 
 // Line shapes copied from a real Codex 0.160 rollout (code-mode `exec` tool).
 const TURN = 'turn-1';
@@ -26,7 +27,7 @@ const output = (id: string, results: object[], turn = TURN) => ({
 });
 
 function rollout(lines: object[]): string {
-  const dir = mkdtempSync(join(tmpdir(), 'askwhy-codex-'));
+  const dir = tempDir('askwhy-codex-');
   const path = join(dir, 'rollout.jsonl');
   writeFileSync(path, lines.map((l) => JSON.stringify(l)).join('\n'));
   return path;

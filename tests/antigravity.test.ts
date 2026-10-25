@@ -2,7 +2,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -10,13 +10,14 @@ import { handleAntigravity, userRequest } from '../src/hooks/antigravity.js';
 import { installAntigravityHooks } from '../src/commands/init.js';
 import { verdict } from '../src/commands/receipt.js';
 import { readPending } from '../src/pending.js';
+import { tempDir } from './tmp.js';
 
 function git(dir: string, args: string[]): string {
   return execFileSync('git', args, { cwd: dir, encoding: 'utf8' }).trim();
 }
 
 function repo(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'askwhy-ag-'));
+  const dir = tempDir('askwhy-ag-');
   git(dir, ['init', '-q', '-b', 'main']);
   git(dir, ['config', 'user.email', 't@example.com']);
   git(dir, ['config', 'user.name', 'T']);

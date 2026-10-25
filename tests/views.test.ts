@@ -2,8 +2,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { handleClaudeCode, handleCodex } from '../src/hooks/core.js';
@@ -13,13 +12,14 @@ import { readPending } from '../src/pending.js';
 import { readRecords } from '../src/notes.js';
 import { allRecords, linesLanded, parseSince } from '../src/records.js';
 import { headSha } from '../src/git.js';
+import { tempDir } from './tmp.js';
 
 function git(dir: string, args: string[]): string {
   return execFileSync('git', args, { cwd: dir, encoding: 'utf8' }).trim();
 }
 
 function repo(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'askwhy-'));
+  const dir = tempDir('askwhy-');
   git(dir, ['init', '-q', '-b', 'main']);
   git(dir, ['config', 'user.email', 't@example.com']);
   git(dir, ['config', 'user.name', 'T']);
